@@ -40,6 +40,7 @@ usage() {
     echo "                          Use: 'nat' for NAT (default)"
     echo "                               'bridge' for bridging"
     echo "                               'none' for no Internet sharing (equivalent to -n)"
+    echo "  --virt-prefix           Prefix name of virtual interface."
     echo "  --psk                   Use 64 hex digits pre-shared-key instead of passphrase"
     echo "  --hidden                Make the Access Point hidden (do not broadcast the SSID)"
     echo "  --mac-filter            Enable MAC address filtering"
@@ -1028,7 +1029,7 @@ for ((i=0; i<$#; i++)); do
     fi
 done
 
-GETOPT_ARGS=$(getopt -o hc:w:g:de:nm: -l "help","hidden","hostapd-debug:","redirect-to-localhost","mac-filter","mac-filter-accept:","isolate-clients","ieee80211n","ieee80211ac","ht_capab:","vht_capab:","driver:","no-virt","fix-unmanaged","country:","freq-band:","mac:","dhcp-dns:","daemon","stop:","list","list-running","list-clients:","version","psk","no-haveged","no-dns","no-dnsmasq","mkconfig:","config:" -n "$PROGNAME" -- "$@")
+GETOPT_ARGS=$(getopt -o hc:w:g:de:nm: -l "help","hidden","hostapd-debug:","redirect-to-localhost","mac-filter","mac-filter-accept:","isolate-clients","ieee80211n","ieee80211ac","ht_capab:","vht_capab:","driver:","no-virt","fix-unmanaged","country:","freq-band:","mac:","dhcp-dns:","daemon","stop:","list","list-running","list-clients:","version","psk","no-haveged","no-dns","no-dnsmasq","mkconfig:","config:","virt-prefix:" -n "$PROGNAME" -- "$@")
 [[ $? -ne 0 ]] && exit 1
 eval set -- "$GETOPT_ARGS"
 
@@ -1206,6 +1207,11 @@ while :; do
             ;;
         --config)
             shift
+            shift
+            ;;
+        --virt-prefix)
+            shift
+            VIRT_PREFIX="$1"
             shift
             ;;
         --)
@@ -1516,7 +1522,13 @@ if [[ $USE_IWCONFIG -eq 0 ]]; then
 fi
 
 if [[ $NO_VIRT -eq 0 ]]; then
-    VWIFI_IFACE=$(alloc_new_iface ap)
+    if [ -z $VIRT_PREFIX ]; then
+        VIRT_IFACE="ap" # default virtual iface name
+    else
+        VIRT_IFACE=${VIRT_PREFIX}
+    fi
+
+    VWIFI_IFACE=$(alloc_new_iface ${VIRT_IFACE})
 
     # in NetworkManager 0.9.9 and above we can set the interface as unmanaged without
     # the need of MAC address, so we set it before we create the virtual interface.
